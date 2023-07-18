@@ -1,4 +1,3 @@
-
 library(goft)
 library(stats4)
 library(MASS)
@@ -14,18 +13,17 @@ source("http://www.datall-analyse.nl/R/eva_max.R")
 
 setwd("F://4_Paper//copula")
 
-
-##################### 1.copula计算
+##################### 1.Copula fitting
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 
-# 生成空矩阵
+# Generate the empty matrix
 para_cop <- matrix(data = NA, nrow = 1665, ncol = 15)
 
-# copula参数及检验参数
+# Fitting copula parameters and test parameters
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -34,7 +32,7 @@ for(i in 1:1665){
 	data_sur_wav <- read.csv(infile_mid)
 	data_sur_wav <- data_sur_wav[, 1:2]
 
-	# 创建copula
+	# Fitting copula
 	myCop.clayton <- copula::archmCopula(family = "clayton", dim = 2, param = NA_real_)
 	myCop.frank <- copula::archmCopula(family = "frank", dim = 2, param = NA_real_)
 	myCop.gumbel <- copula::archmCopula(family = "gumbel", dim = 2, param = NA_real_)
@@ -49,7 +47,7 @@ for(i in 1:1665){
                                  paramMargins = list(list(xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c']),
                                                 list(xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])))
 
-  # copula拟合
+  # Fitting copula
 	fit.Cop.clayton <- copula::fitCopula(myMvd_clayton@copula, pobs(data_sur_wav), method = "ml")
 	fit.clayton.alpha <- coef(fit.Cop.clayton)
 	aic_clayton <- round(AIC(fit.Cop.clayton), 3)
@@ -83,14 +81,14 @@ for(i in 1:1665){
 		}
 	)
 
-	# 保存参数
+	# Save parameters
 	para_cop[i, ] = c(nod, lon, lat,
 					fit.clayton.alpha, aic_clayton, bic_clayton, p.clayton,
 					fit.frank.alpha, aic_frank, bic_frank, p.frank,
                     fit.gumbel.alpha, aic_gumbel, bic_gumbel, p.gumbel)
 }
 
-# 保存文件
+# Save file
 write.table(para_cop, "rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv",
             row.names = FALSE,
             col.names = c("nod", "lon", "lat",
@@ -99,23 +97,23 @@ write.table(para_cop, "rst/bivariate_surge_wave/rect_bivariate_fitting_all_param
                           "gumbel_theta", "gumbel_aic", "gumbel_bic", "gumbel_p"), sep = ",")
 
 
-##################### 2.copula绘图
+##################### 2.Copula drafting
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
-# 绘图
+# Drafting
 for(i in 1:1665){
 	print(i)
 
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 
 	infile_mid = paste("mid/rect_year_max_select/", nod, ".csv", sep = "")
 	data_sur_wav <- read.csv(infile_mid)
 	data_sur_wav <- data_sur_wav[, 1:2]
   
-	# copula拟合
+	# Copula fitting
 	sur_min <- qgev(0.001, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	sur_max <- qgev(0.999, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	wav_min <- qgev(0.001, xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])
@@ -125,11 +123,11 @@ for(i in 1:1665){
                               paramMargins = list(list(xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c']), 
                                              list(xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])))
 
-	# mariginal fittiing
+	# Mariginal fittiing
 	sur <- dgev(seq(sur_min, sur_max, length=100), xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	wav <- dgev(seq(wav_min, wav_max, length=100), xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])
 
-	# save data
+	# Save data
 	para_pdf_cdf <- matrix(data = NA, nrow = n * n, ncol = 4)
 	para_pdf_cdf[, 1] <- X[, 1]
 	para_pdf_cdf[, 2] <- X[, 2]
@@ -156,7 +154,7 @@ for(i in 1:1665){
 	write.table(para_pdf_cdf, pdf_cdf_file, row.names = FALSE,
                 col.names = c("surge_height", "wave_height", "copula_PDF", "copula_CDF"), sep = ",")
 
-	# 绘制pdf和cdf图
+	# Drawing pdf and cdf
 	png_a = paste("jpg/copula_pdf_cdf/copula_pdf_cdf_", nod, ".png", sep = "")
 	png(file = png_a, width = 3800, height = 2500, res = 72 * 2)
 	op <- par(mfcol = c(1, 2))
@@ -190,7 +188,7 @@ for(i in 1:1665){
 	par(op)
 	dev.off( )
 
-	# 绘制随机数散点图
+	# Plotting random number scatter
 	x.samp <- rMvdc(1000, myMvd.fit)
 	plot(x.samp)
 
@@ -213,21 +211,21 @@ for(i in 1:1665){
 }
 
 
-##################### 3.重现期计算
+##################### 3.Calculate return period
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 
 	infile_mid = paste("mid/rect_year_max_select/", nod, ".csv", sep = "")
 	data_sur_wav <- read.csv(infile_mid)
 	data_sur_wav <- data_sur_wav[, 1:2]
 
-	# Copula拟合
+	# Copula fitting
 	sur_min <- qgev(0.001, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	sur_max <- qgev(0.999, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	wav_min <- qgev(0.001, xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])
@@ -253,7 +251,7 @@ for(i in 1:1665){
 	ReturnPeriod_and <- 1 / (1 - p_s - p_w + p_copula)
 	ReturnPeriod_or <- 1 / (1 - p_copula)
 
-	# save data
+	# Save data
 	data_out <- matrix(data = NA, nrow = n * n, ncol = 4)
 	data_out[, 1] <- X[, 1]
 	data_out[, 2] <- X[, 2]
@@ -264,7 +262,7 @@ for(i in 1:1665){
 	write.table(data_out, rstPath, row.names = FALSE,
                 col.names = c("surge_height", "wave_height", "RP_AND", "RP_OR"), sep = ",")
 
-	# or / and
+	# return period or / and
 	png_c = paste("jpg/copula3d_RP_/copula_RP_or_and_", nod, ".png", sep = "")
 	png(file = png_c, width = 1000, height = 1000, res = 72 * 2)
 
@@ -294,13 +292,13 @@ for(i in 1:1665){
 }
 
 
-##################### 4.同现概率/联合概率计算
+##################### 4.Calculate simultaneous probability/joint probability
 
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
-# 生成空矩阵
+# Generate the empty matrix
 sur_rp_out <- matrix(data = NA, nrow = 1665, ncol = 1002)
 wav_rp_out <- matrix(data = NA, nrow = 1665, ncol = 1002)
 
@@ -310,10 +308,10 @@ for (n in 1:1665){
 	p <- append(p, 1 - 1 / n)
 }
 
-# 循环计算风暴潮和海浪边缘函数的重现期
+# Calculate return period of marginal function
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -338,7 +336,7 @@ write.table(sur_rp_out, "rst/marginal_surge_wave_RP/rect_marginal_fitting_GEV_RP
 write.table(wav_rp_out, "rst/marginal_surge_wave_RP/rect_marginal_fitting_GEV_RP_wave.csv",
             row.names = FALSE, col.names = c("nod", "lon", "lat", 2:1000), sep = ",")
 
-# 循环计算每个格子的发生概率
+# Calculation probability
 P_and_rp <- matrix(data = NA, nrow = 1665, ncol = 39)
 P_or_rp <- matrix(data = NA, nrow = 1665, ncol = 39)
 
@@ -350,7 +348,7 @@ for (m in c(5, 10, 20, 50, 100, 200)){
 
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -386,7 +384,7 @@ for(i in 1:1665){
 	probability_and <- matrix(probability_and, ncol = 36)
 	probability_or <- matrix(probability_or, ncol = 36)
 
-	# save data
+	# Save data
 	P_and_rp[i, 1] = nod
 	P_and_rp[i, 2] = lon
 	P_and_rp[i, 3] = lat
@@ -417,18 +415,18 @@ write.table(P_or_rp, "rst/bivariate_surge_wave/rect_bivariate_fitting_probabilit
                                              "s5w200", "s10w200", "s20w200", "s50w200", "s100w200", "s200w200"), sep = ",")
 
 
-##################### 5.潮浪划分
+##################### 5.Surge and Wave Division
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
-# 生成空矩阵
+# Generate the empty matrix
 P_level <- matrix(data = NA, nrow = 1665, ncol = 28)
 
-# 循环计算每个格子的发生概率
+# Calculation probability
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -437,7 +435,7 @@ for(i in 1:1665){
 	P_level[i, 2] = lon
 	P_level[i, 3] = lat
 
-	# 设定分级
+	# Set class of surges and waves
 	sur_min <- qgev(0.0001, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	sur_max <- qgev(0.9999, xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c'])
 	wav_min <- qgev(0.0001, xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])
@@ -446,13 +444,13 @@ for(i in 1:1665){
 	sur_level <- c(0, 1.0, 1.5, 2.0, 2.5, 40)
 	# wav_level <- c(0, 2.5, 3.5, 4.5, 6.0, 40)
 	wav_level <- c(0, 4.0, 6.0, 9.0, 14.0, 40)
-	# Copula拟合
+	# Copula fitting
 	myCop.fit <- copula::archmCopula(family = "gumbel", dim = 2, param = para_cop[i, "gumbel_theta"])
 	myMvd.fit <- copula::mvdc(copula = myCop.fit, margins = c("gev", "gev"), 
                               paramMargins = list(list(xi = - para_sur[i, 'a'], mu = para_sur[i, 'b'], sigma = para_sur[i, 'c']), 
                                              list(xi = - para_wav[i, 'a'], mu = para_wav[i, 'b'], sigma = para_wav[i, 'c'])))
 
-	# 分区计算概率
+	# Calculate segmentation probability
 	for (j in 1:5){
 		x1 <- sur_level[j]
 		x2 <- sur_level[j + 1]
@@ -513,18 +511,18 @@ write.table(P_level, "rst/bivariate_surge_wave/rect_bivariate_fitting_zonation.c
                                              "s5w1", "s5w2", "s5w3", "s5w4", "s5w5"), sep = ",")
 
 
-##################### 6.风暴潮和海浪设计值
+##################### 6.Design values for surge and wave
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
-# 生成空矩阵
+# Generate the empty matrix
 value_rp_or <- matrix(data = NA, nrow = 1665, ncol = 21)
 
-# 循环计算风暴潮和海浪边缘函数的重现期
+# Calculate return periods of marginal function
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -585,7 +583,7 @@ write.table(value_rp_or, "rst/bivariate_surge_wave/rect_bivariate_fitting_joint_
                                              "surge_200a", "wave_200a",  "RP_and_200a"), sep = ",")
 
 
-## 给定RP_OR,求解RP_AND的最小值
+## Given RP_or, solve for the minimum value of RP_and
 myCop.fit <- copula::archmCopula(family = "gumbel", dim = 2, param = 1.897174029)
 myMvd.fit <- copula::mvdc(copula = myCop.fit, margins = c("gev", "gev"), 
                           paramMargins = list(list(xi = 0.480647084, mu = 0.25654794, sigma = 0.173433132), 
@@ -608,7 +606,7 @@ ret <- donlp2(p, obj, par.u=par.u, par.l=par.l, nlin=list(nlcon1), nlin.u=nlin.u
 ret
 
 
-## 给定RP_AND,求解RP_OR的最大值
+## Given RP_and, solve for the maximum value of RP_or
 myCop.fit <- copula::archmCopula(family = "gumbel", dim = 2, param = 1.897174029)
 myMvd.fit <- copula::mvdc(copula = myCop.fit, margins = c("gev", "gev"), 
                           paramMargins = list(list(xi = 0.480647084, mu = 0.25654794, sigma = 0.173433132), 
@@ -631,13 +629,13 @@ ret <- donlp2(p, obj, par.u=par.u, par.l=par.l, nlin=list(nlcon1), nlin.u=nlin.u
 ret$par
 
 
-##################### 7.条件概率计算
+##################### 7.Calculate conditional probability
 
 para_sur <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_surge.csv")
 para_wav <- read.csv("rst/bivariate_surge_wave/rect_marginal_fitting_GEV_params_wave.csv")
 para_cop <- read.csv("rst/bivariate_surge_wave/rect_bivariate_fitting_all_params.csv")
 
-# 循环计算每个格子的不同重现期风暴潮条件下海浪发生概率和不同重现期海浪条件下风暴潮发生概率
+# Calculate conditional probability under different return periods
 P_sur_rp <- matrix(data = NA, nrow = 1665, ncol = 39)
 P_wav_rp <- matrix(data = NA, nrow = 1665, ncol = 39)
 
@@ -649,7 +647,7 @@ for (m in c(5, 10, 20, 50, 100, 200)){
 
 for(i in 1:1665){
 	print(i)
-	# 输入数据
+	# Input data
 	nod = para_sur[i, 'nod']
 	lon = para_sur[i, 'lon']
 	lat = para_sur[i, 'lat']
@@ -681,7 +679,7 @@ for(i in 1:1665){
 	probability_sur <- matrix(probability_sur, ncol = 36)
 	probability_wav <- matrix(probability_wav, ncol = 36)
 
-	# save data
+	# Save data
 	P_sur_rp[i, 1] = nod
 	P_sur_rp[i, 2] = lon
 	P_sur_rp[i, 3] = lat
